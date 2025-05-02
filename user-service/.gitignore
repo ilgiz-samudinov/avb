@@ -1,0 +1,42 @@
+### IntelliJ IDEA ###
+.idea
+*.iws
+*.iml
+*.iprarget/
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+release.properties
+dependency-reduced-pom.xml
+
+# Maven Wrapper
+.mvn/wrapper/maven-wrapper.properties
+!.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/maven-wrapper.jar
+.mvn/wrapper/
+.mvn/
+
+mvnw
+mvnw.cmd
+
+# Logs and temp
+*.log
+*.tmp
+*.bak
+*.swp
+*.swo
+*.orig
+
+# Java
+*.class
+
+# System
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*

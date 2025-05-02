@@ -1,0 +1,58 @@
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  eureka:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    image: eureka-server
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    image: gateway
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - eureka
+
+  user-service:
+    build:
+      context: ./user-service
+      dockerfile: Dockerfile
+    image: user-service
+    container_name: user-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - eureka
+
+  company-service:
+    build:
+      context: ./company-service
+      dockerfile: Dockerfile
+    image: company-service
+    container_name: company-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - eureka
+
+volumes:
+  pgdata:
