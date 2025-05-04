@@ -33,7 +33,7 @@
 
 Перед сборкой убедитесь, что базовый образ JDK загружен:
 ```bash
-docker pull ilgizsamudinov/oracle-jdk
+docker pull ilgizsamudinov/oracle-jdk:24
 ```
 
 
