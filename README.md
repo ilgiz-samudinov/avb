@@ -30,6 +30,13 @@
 
 ## Предварительные требования
 
+
+Перед сборкой убедитесь, что базовый образ JDK загружен:
+```bash
+docker pull ilgizsamudinov/oracle-jdk:24
+```
+
+
 * Git
 * Docker 
 * Docker 
