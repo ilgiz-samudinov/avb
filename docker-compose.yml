@@ -1,18 +1,31 @@
-
+version: "3.9"
 services:
-  postgres:
-    image: postgres:15
-    container_name: postgres
-    environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+  config-server:
+    build:
+      context: ./config-server
+      dockerfile: Dockerfile
+    image: config-server
+    container_name: config-server
     ports:
-      - "5432:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+      - "8888:8888"
+    environment:
+      SPRING_APPLICATION_NAME: config-server
+      SERVER_PORT: 8888
+      SPRING_CLOUD_CONFIG_SERVER_GIT_URI: https://github.com/ilgiz-samudinov/avb-config-repo.git
+      SPRING_CLOUD_CONFIG_SERVER_GIT_DEFAULT_LABEL: main
+      SPRING_CLOUD_CONFIG_SERVER_GIT_CLONE_ON_START: "true"
+      SPRING_CLOUD_CONFIG_SERVER_GIT_FORCE_PULL: "true"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "*"
 
-  eureka:
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  eureka-server:
     build:
       context: ./eureka-server
       dockerfile: Dockerfile
@@ -20,28 +33,80 @@ services:
     container_name: eureka-server
     ports:
       - "8761:8761"
-
-  gateway:
-    build:
-      context: ./gateway
-      dockerfile: Dockerfile
-    image: gateway
-    container_name: gateway
-    ports:
-      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_NAME: eureka-server
+      SERVER_PORT: 8761
+      EUREKA_CLIENT_REGISTER_WITH_EUREKA: "false"
+      EUREKA_CLIENT_FETCH_REGISTRY: "false"
+    networks:
+      - backend
     depends_on:
-      - eureka
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+
+  user_db:
+    image: postgres:16.0
+    container_name: user_db
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - user_db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d users" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  company_db:
+    image: postgres:16.0
+    container_name: company_db
+    environment:
+      POSTGRES_DB: company_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - company_db-data:/var/lib/postgresql/data
+    networks:
+      - backend
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d company_db" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   user-service:
     build:
       context: ./user-service
       dockerfile: Dockerfile
     image: user-service
-    container_name: user-service
     ports:
       - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://user_db:5432/users
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_APPLICATION_NAME: user-service
+      SERVER_PORT: 8081
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+    networks:
+      - backend
     depends_on:
-      - eureka
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      user_db:
+        condition: service_healthy
 
   company-service:
     build:
@@ -51,8 +116,51 @@ services:
     container_name: company-service
     ports:
       - "8082:8082"
+    environment:
+      SPRING_APPLICATION_NAME: company-service
+      SPRING_DATASOURCE_URL: jdbc:postgresql://company_db:5432/company_db
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SERVER_PORT: 8082
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+    networks:
+      - backend
     depends_on:
-      - eureka
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      company_db:
+        condition: service_healthy
+
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    image: gateway
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_APPLICATION_NAME: gateway
+      SERVER_PORT: 8080
+      SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+      SPRING_CLOUD_GATEWAY_DISCOVERY_LOCATOR_ENABLED: "true"
+      SPRING_CLOUD_GATEWAY_DISCOVERY_LOWER_CASE_SERVICE_ID: "true"
+      MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: health,info
+    networks:
+      - backend
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
 
 volumes:
-  pgdata:
+  user_db-data:
+  company_db-data:
+
+networks:
+  backend:
+    driver: bridge
