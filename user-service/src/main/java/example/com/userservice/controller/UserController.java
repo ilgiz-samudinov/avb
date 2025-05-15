@@ -3,9 +3,9 @@ package example.com.userservice.controller;
 import example.com.userservice.dto.Company;
 import example.com.userservice.dto.UserRequest;
 import example.com.userservice.dto.UserResponse;
-import example.com.userservice.feign.CompanyClient;
 import example.com.userservice.mapper.UserMapper;
 import example.com.userservice.model.UserEntity;
+import example.com.userservice.provider.CompanyProviderClient;
 import example.com.userservice.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,13 +21,14 @@ import java.util.List;
 public class UserController {
     private final UserService userService;
     private final UserMapper userMapper;
-    private final CompanyClient companyClient;
+    private final CompanyProviderClient companyProviderClient;
+
 
     @PostMapping
     public ResponseEntity<UserResponse> createUser(@Valid @RequestBody UserRequest request) {
         UserEntity userEntity = userMapper.toEntity(request);
         UserEntity createdUser = userService.createUser(userEntity);
-        Company company = companyClient.getCompany(userEntity.getCompanyId());
+        Company company = companyProviderClient.getCompanyById(userEntity.getCompanyId());
         UserResponse userResponse = userMapper.toResponse(createdUser);
         userResponse.setCompany(company);
         return ResponseEntity.status(HttpStatus.CREATED).body(userResponse);
@@ -43,7 +44,7 @@ public class UserController {
     @GetMapping("/{id}")
     public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) {
         UserEntity userEntity = userService.getUserById(id);
-        Company company = companyClient.getCompany(userEntity.getCompanyId());
+        Company company = companyProviderClient.getCompanyById(userEntity.getCompanyId());
         UserResponse userResponse = userMapper.toResponse(userEntity);
         userResponse.setCompany(company);
         return ResponseEntity.ok(userResponse);
@@ -62,11 +63,12 @@ public class UserController {
                                                    @Valid @RequestBody UserRequest request) {
         UserEntity userEntity = userMapper.toEntity(request);
         UserEntity updatedUser  = userService.updatedUser(id, userEntity);
-        Company company = companyClient.getCompany(userEntity.getCompanyId());
+        Company company = companyProviderClient.getCompanyById(userEntity.getCompanyId());
         UserResponse userResponse = userMapper.toResponse(updatedUser);
         userResponse.setCompany(company);
         return ResponseEntity.ok(userResponse);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
@@ -75,4 +77,3 @@ public class UserController {
     }
 
 }
-

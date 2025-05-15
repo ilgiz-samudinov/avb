@@ -37,7 +37,22 @@ public class CompanyController {
 
 
 
+    @GetMapping("check/{id}")
+    public Boolean check(@PathVariable Long id){
+        return companyService.checkCompanyExist(id);
+    }
+
+
+
     @GetMapping("/{id}")
+    public ResponseEntity<CompanyResponse> getCompanyById(@PathVariable Long id) {
+        return ResponseEntity.ok(companyMapper.toResponse(companyService.getCompanyById(id)));
+    }
+
+
+
+
+    @GetMapping("/{id}/with-employees")
     public  ResponseEntity<CompanyResponse> getCompanyAndEmployees(@PathVariable Long id) {
         return ResponseEntity.ok(companyService.getCompanyAndEmployees(id));
     }

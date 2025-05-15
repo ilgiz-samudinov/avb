@@ -4,9 +4,9 @@ import example.com.userservice.dto.Company;
 import example.com.userservice.dto.UserResponse;
 import example.com.userservice.exception.NotFoundException;
 import example.com.userservice.exception.ValidationException;
-import example.com.userservice.feign.CompanyClient;
 import example.com.userservice.mapper.UserMapper;
 import example.com.userservice.model.UserEntity;
+import example.com.userservice.provider.CompanyProviderClient;
 import example.com.userservice.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,15 +23,21 @@ import java.util.stream.Collectors;
 public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
-    private final CompanyClient companyClient;
+
+
+    private final CompanyProviderClient companyProviderClient;
+
 
     @Transactional
     public UserEntity  createUser(UserEntity user) {
-        companyClient.checkExists(user.getCompanyId());
         validateUser(user);
+        Boolean exists =  companyProviderClient.checkCompanyById(user.getCompanyId());
+        if (!exists) {
+            throw new ValidationException("company not exists");
+        }
 
         UserEntity createdUser = userRepository.save(user);
-        companyClient.addEmployee(user.getCompanyId(), createdUser.getId());
+        companyProviderClient.addEmployee(user.getCompanyId(), createdUser.getId());
         return createdUser;
     }
 
@@ -42,12 +48,15 @@ public class UserService {
 
     @Transactional
     public UserEntity updatedUser(Long id, UserEntity user) {
-        companyClient.checkExists(user.getCompanyId());
+        Boolean exists =  companyProviderClient.checkCompanyById(user.getCompanyId());
+        if (!exists) {
+            throw new ValidationException("company not exists");
+        }
         validateUser(user);
         UserEntity existingUser = getUserById(id);
         userMapper.mergeUser(existingUser, user);
         UserEntity updatedUser = userRepository.save(existingUser);
-        companyClient.addEmployee(user.getCompanyId(), updatedUser.getId());
+        companyProviderClient.addEmployee(user.getCompanyId(), updatedUser.getId());
         return updatedUser;
     }
 
@@ -97,7 +106,7 @@ public class UserService {
 
         Map<Long, Company>  companyMap = new HashMap<>();
         if(!allCompaniesIds.isEmpty()){
-           List<Company> allCompanies = companyClient.getCompaniesByIds(allCompaniesIds);
+           List<Company> allCompanies = companyProviderClient.getCompaniesByIds(allCompaniesIds);
 
             allCompanies.forEach(company ->
                     companyMap.put(company.getId(), company)

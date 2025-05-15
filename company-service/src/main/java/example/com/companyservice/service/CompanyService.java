@@ -4,9 +4,9 @@ import example.com.companyservice.dto.CompanyResponse;
 import example.com.companyservice.dto.User;
 import example.com.companyservice.exception.NotFoundException;
 import example.com.companyservice.exception.ValidationException;
-import example.com.companyservice.feign.UserClient;
 import example.com.companyservice.mapper.CompanyMapper;
 import example.com.companyservice.model.CompanyEntity;
+import example.com.companyservice.provider.UserProviderClient;
 import example.com.companyservice.repository.CompanyRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,8 +23,7 @@ import java.util.stream.Collectors;
 public class CompanyService {
     private final CompanyRepository companyRepository;
     private final CompanyMapper companyMapper;
-    private final UserClient userClient;
-
+    private final UserProviderClient userProviderClient;
 
     @Transactional
     public CompanyEntity createCompany(CompanyEntity companyEntity) {
@@ -35,9 +34,6 @@ public class CompanyService {
 
     @Transactional(readOnly = true)
     public List<CompanyEntity> getAllCompanies() {
-
-
-
         return companyRepository.findAll();
     }
 
@@ -68,13 +64,24 @@ public class CompanyService {
 
 
     @Transactional(readOnly = true)
+    public Boolean checkCompanyExist(Long id) {
+        if(companyRepository.existsById(id)) {
+            return true;
+        }
+        return false;
+    }
+
+
+
+
+    @Transactional(readOnly = true)
     public CompanyResponse getCompanyAndEmployees(Long id) {
         CompanyEntity companyEntity =  getCompanyById(id);
 
 
         List<User>  users = companyEntity.getEmployeeIds().isEmpty()
                 ?List.of()
-                :userClient.getUserByIds(companyEntity.getEmployeeIds());
+                :userProviderClient.getUserByIds(companyEntity.getEmployeeIds());
 
 
         CompanyResponse companyResponse = companyMapper.toResponse(companyEntity);
@@ -99,12 +106,12 @@ public class CompanyService {
 
         List<Long> allEmployeeIds = companyEntities.stream()
                 .flatMap(company -> company.getEmployeeIds().stream())
-                .distinct() // Убираем дубликаты
+                .distinct()
                 .collect(Collectors.toList());
 
         Map<Long, User> userMap  = new HashMap<>();
         if (!allEmployeeIds.isEmpty()) {
-            List<User> allUsers = userClient.getUserByIds(allEmployeeIds);
+            List<User> allUsers = userProviderClient.getUserByIds(allEmployeeIds);
             allUsers.forEach(u -> userMap.put(u.getId(), u));
         }
 
@@ -114,7 +121,7 @@ public class CompanyService {
 
                     List<User> companyUsers = company.getEmployeeIds().stream()
                             .map(userMap::get)
-                            .filter(Objects::nonNull) // На случай, если какой-то пользователь не найден
+                            .filter(Objects::nonNull)
                             .collect(Collectors.toList());
 
                     response.setUsers(companyUsers);
