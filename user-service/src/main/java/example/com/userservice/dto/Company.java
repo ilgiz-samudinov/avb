@@ -9,5 +9,4 @@ public class Company {
     private Long id;
     private String name;
     private double budget;
- //   private List<Long> employeeIds;
 }

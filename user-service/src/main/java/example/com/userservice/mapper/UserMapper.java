@@ -16,6 +16,6 @@ public  interface UserMapper {
     UserResponse toResponse(UserEntity entity);
 
     @Mapping(target  = "id" , ignore = true)
-    UserEntity mergeUser(@MappingTarget UserEntity existing, UserEntity updated);
+    void mergeUser(@MappingTarget UserEntity existing, UserEntity updated);
 
 }

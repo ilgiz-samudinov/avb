@@ -10,10 +10,8 @@ import org.mapstruct.MappingTarget;
 @Mapper(componentModel = "spring")
 public interface CompanyMapper {
     CompanyEntity toEntity(CompanyRequest companyRequest);
-
-
     CompanyResponse toResponse(CompanyEntity companyEntity);
 
     @Mapping(target = "id", ignore = true)
-    CompanyEntity mergeCompany(@MappingTarget CompanyEntity existing, CompanyEntity updated);
+    void mergeCompany(@MappingTarget CompanyEntity existing, CompanyEntity updated);
 }

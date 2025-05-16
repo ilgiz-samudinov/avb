@@ -1,7 +1,6 @@
 package example.com.userservice.provider;
 
 import example.com.userservice.dto.Company;
-import example.com.userservice.dto.MessageDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.stereotype.Component;
@@ -61,14 +60,4 @@ public class CompanyProviderClient {
 
     }
 
-
-    @PostMapping("/send")
-    public String sendMessage(@RequestBody MessageDto messageDto){
-        return webClient.post()
-                .uri("/receive")
-                .bodyValue(messageDto)
-                .retrieve()
-                .bodyToMono(String.class)
-                .block();
-    }
 }
