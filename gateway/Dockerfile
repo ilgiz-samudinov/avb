@@ -1,4 +1,4 @@
-FROM oracle/jdk:24
+FROM ilgizsamudinov/oracle-jdk:24
 
 WORKDIR /app
 
